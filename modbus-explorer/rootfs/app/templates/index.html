@@ -10,15 +10,15 @@
     <div class="container">
         <header>
             <h1>Modbus Explorer</h1>
-            <p class="subtitle">Read and write Modbus registers</p>
+            <p class="subtitle">Modbus-Register lesen und schreiben</p>
         </header>
 
-        <!-- Connection Settings -->
+        <!-- Verbindungseinstellungen -->
         <section class="card">
-            <h2>Connection Settings</h2>
+            <h2>Verbindungseinstellungen</h2>
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="ip">IP Address</label>
+                    <label for="ip">IP-Adresse</label>
                     <input type="text" id="ip" placeholder="192.168.1.100" required>
                 </div>
                 <div class="form-group">
@@ -26,31 +26,31 @@
                     <input type="number" id="port" value="{{ default_port }}" min="1" max="65535">
                 </div>
                 <div class="form-group">
-                    <label for="slave_id">Slave ID</label>
+                    <label for="slave_id">Slave-ID</label>
                     <input type="number" id="slave_id" value="{{ default_slave_id }}" min="0" max="255">
                 </div>
             </div>
         </section>
 
-        <!-- Single Register Operations -->
+        <!-- Einzelnes Register -->
         <section class="card">
-            <h2>Single Register</h2>
+            <h2>Einzelnes Register</h2>
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="address">Register Address</label>
+                    <label for="address">Register-Adresse</label>
                     <input type="number" id="address" value="0" min="0">
                 </div>
                 <div class="form-group">
-                    <label for="register_type">Register Type</label>
+                    <label for="register_type">Register-Typ</label>
                     <select id="register_type">
-                        <option value="holding">Holding Register (Read/Write)</option>
-                        <option value="input">Input Register (Read-Only)</option>
-                        <option value="coil">Coil (Read/Write)</option>
-                        <option value="discrete">Discrete Input (Read-Only)</option>
+                        <option value="holding">Holding Register (Lesen/Schreiben)</option>
+                        <option value="input">Input Register (Nur Lesen)</option>
+                        <option value="coil">Coil (Lesen/Schreiben)</option>
+                        <option value="discrete">Discrete Input (Nur Lesen)</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="data_type">Data Type</label>
+                    <label for="data_type">Datentyp</label>
                     <select id="data_type">
                         {% for dt in data_types %}
                         <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
@@ -60,52 +60,52 @@
             </div>
 
             <div class="button-group">
-                <button id="btn-read" class="btn btn-primary">Read Value</button>
-                <button id="btn-test-write" class="btn btn-secondary">Test if Writable</button>
+                <button id="btn-read" class="btn btn-primary">Wert lesen</button>
+                <button id="btn-test-write" class="btn btn-secondary">Schreibbar testen</button>
             </div>
 
-            <!-- Result Display -->
+            <!-- Ergebnis-Anzeige -->
             <div id="result-container" class="result-container hidden">
                 <div class="result-header">
-                    <h3>Result</h3>
+                    <h3>Ergebnis</h3>
                     <span id="writable-badge" class="badge hidden"></span>
                 </div>
                 <div class="result-grid">
                     <div class="result-item">
-                        <label>Current Value</label>
+                        <label>Aktueller Wert</label>
                         <span id="current-value">-</span>
                     </div>
                     <div class="result-item">
-                        <label>Raw Registers</label>
+                        <label>Roh-Register</label>
                         <span id="raw-value">-</span>
                     </div>
                 </div>
 
-                <!-- Write Section -->
+                <!-- Schreiben-Bereich -->
                 <div id="write-section" class="write-section hidden">
-                    <h4>Write New Value</h4>
+                    <h4>Neuen Wert schreiben</h4>
                     <div class="write-form">
-                        <input type="text" id="new-value" placeholder="Enter new value">
-                        <button id="btn-write" class="btn btn-warning">Write</button>
+                        <input type="text" id="new-value" placeholder="Neuen Wert eingeben">
+                        <button id="btn-write" class="btn btn-warning">Schreiben</button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Scan Section -->
+        <!-- Scan-Bereich -->
         <section class="card">
-            <h2>Scan Range</h2>
+            <h2>Bereich scannen</h2>
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="scan-start">Start Address</label>
+                    <label for="scan-start">Start-Adresse</label>
                     <input type="number" id="scan-start" value="0" min="0">
                 </div>
                 <div class="form-group">
-                    <label for="scan-end">End Address</label>
+                    <label for="scan-end">End-Adresse</label>
                     <input type="number" id="scan-end" value="10" min="0">
                 </div>
                 <div class="form-group">
-                    <label for="scan-register-type">Register Type</label>
+                    <label for="scan-register-type">Register-Typ</label>
                     <select id="scan-register-type">
                         <option value="holding">Holding Register</option>
                         <option value="input">Input Register</option>
@@ -114,7 +114,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="scan-data-type">Data Type</label>
+                    <label for="scan-data-type">Datentyp</label>
                     <select id="scan-data-type">
                         {% for dt in data_types %}
                         <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
@@ -122,19 +122,19 @@
                     </select>
                 </div>
             </div>
-            <button id="btn-scan" class="btn btn-primary">Scan Registers</button>
+            <button id="btn-scan" class="btn btn-primary">Register scannen</button>
 
-            <!-- Scan Results -->
+            <!-- Scan-Ergebnisse -->
             <div id="scan-results" class="scan-results hidden">
-                <h3>Scan Results</h3>
+                <h3>Scan-Ergebnisse</h3>
                 <table id="scan-table">
                     <thead>
                         <tr>
-                            <th>Address</th>
-                            <th>Value</th>
-                            <th>Raw</th>
+                            <th>Adresse</th>
+                            <th>Wert</th>
+                            <th>Roh</th>
                             <th>Status</th>
-                            <th>Action</th>
+                            <th>Aktion</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -142,12 +142,12 @@
             </div>
         </section>
 
-        <!-- Status Messages -->
+        <!-- Status-Meldungen -->
         <div id="status" class="status hidden"></div>
     </div>
 
     <script>
-        // Helper function to show status messages
+        // Hilfsfunktion für Status-Meldungen
         function showStatus(message, type = 'info') {
             const status = document.getElementById('status');
             status.textContent = message;
@@ -156,7 +156,7 @@
             setTimeout(() => status.classList.add('hidden'), 5000);
         }
 
-        // Helper function to get connection settings
+        // Hilfsfunktion für Verbindungseinstellungen
         function getConnectionSettings() {
             return {
                 ip: document.getElementById('ip').value,
@@ -165,11 +165,11 @@
             };
         }
 
-        // Read single register
+        // Einzelnes Register lesen
         document.getElementById('btn-read').addEventListener('click', async () => {
             const settings = getConnectionSettings();
             if (!settings.ip) {
-                showStatus('Please enter an IP address', 'error');
+                showStatus('Bitte IP-Adresse eingeben', 'error');
                 return;
             }
 
@@ -180,7 +180,7 @@
                 register_type: document.getElementById('register_type').value
             };
 
-            showStatus('Reading register...', 'info');
+            showStatus('Lese Register...', 'info');
 
             try {
                 const response = await fetch('/api/read', {
@@ -199,29 +199,29 @@
                     const badge = document.getElementById('writable-badge');
                     badge.classList.remove('hidden');
                     if (result.writable) {
-                        badge.textContent = 'Writable';
+                        badge.textContent = 'Schreibbar';
                         badge.className = 'badge badge-success';
                         document.getElementById('write-section').classList.remove('hidden');
                     } else {
-                        badge.textContent = 'Read-Only';
+                        badge.textContent = 'Nur Lesen';
                         badge.className = 'badge badge-warning';
                         document.getElementById('write-section').classList.add('hidden');
                     }
 
-                    showStatus('Read successful', 'success');
+                    showStatus('Erfolgreich gelesen', 'success');
                 } else {
                     showStatus(result.error, 'error');
                 }
             } catch (error) {
-                showStatus(`Connection error: ${error.message}`, 'error');
+                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
             }
         });
 
-        // Test if writable
+        // Testen ob schreibbar
         document.getElementById('btn-test-write').addEventListener('click', async () => {
             const settings = getConnectionSettings();
             if (!settings.ip) {
-                showStatus('Please enter an IP address', 'error');
+                showStatus('Bitte IP-Adresse eingeben', 'error');
                 return;
             }
 
@@ -231,7 +231,7 @@
                 register_type: document.getElementById('register_type').value
             };
 
-            showStatus('Testing if register is writable...', 'info');
+            showStatus('Teste ob Register schreibbar ist...', 'info');
 
             try {
                 const response = await fetch('/api/test_write', {
@@ -244,25 +244,25 @@
 
                 if (result.success) {
                     if (result.writable) {
-                        showStatus(`Register is WRITABLE: ${result.reason}`, 'success');
+                        showStatus(`Register ist SCHREIBBAR: ${result.reason}`, 'success');
                     } else {
-                        showStatus(`Register is READ-ONLY: ${result.reason}`, 'warning');
+                        showStatus(`Register ist NUR LESBAR: ${result.reason}`, 'warning');
                     }
                 } else {
                     showStatus(result.error, 'error');
                 }
             } catch (error) {
-                showStatus(`Connection error: ${error.message}`, 'error');
+                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
             }
         });
 
-        // Write value
+        // Wert schreiben
         document.getElementById('btn-write').addEventListener('click', async () => {
             const settings = getConnectionSettings();
             const newValue = document.getElementById('new-value').value;
 
             if (!newValue) {
-                showStatus('Please enter a value to write', 'error');
+                showStatus('Bitte einen Wert zum Schreiben eingeben', 'error');
                 return;
             }
 
@@ -274,7 +274,7 @@
                 value: newValue
             };
 
-            showStatus('Writing value...', 'info');
+            showStatus('Schreibe Wert...', 'info');
 
             try {
                 const response = await fetch('/api/write', {
@@ -286,22 +286,22 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showStatus('Value written successfully!', 'success');
-                    // Re-read to verify
+                    showStatus('Wert erfolgreich geschrieben!', 'success');
+                    // Erneut lesen zur Bestätigung
                     document.getElementById('btn-read').click();
                 } else {
                     showStatus(result.error, 'error');
                 }
             } catch (error) {
-                showStatus(`Connection error: ${error.message}`, 'error');
+                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
             }
         });
 
-        // Scan registers
+        // Register scannen
         document.getElementById('btn-scan').addEventListener('click', async () => {
             const settings = getConnectionSettings();
             if (!settings.ip) {
-                showStatus('Please enter an IP address', 'error');
+                showStatus('Bitte IP-Adresse eingeben', 'error');
                 return;
             }
 
@@ -313,7 +313,7 @@
                 register_type: document.getElementById('scan-register-type').value
             };
 
-            showStatus('Scanning registers...', 'info');
+            showStatus('Scanne Register...', 'info');
 
             try {
                 const response = await fetch('/api/scan', {
@@ -336,23 +336,23 @@
                             <td>${item.raw ? JSON.stringify(item.raw) : '-'}</td>
                             <td>${item.error ? `<span class="error-text">${item.error}</span>` : '<span class="success-text">OK</span>'}</td>
                             <td>
-                                ${item.value !== null ? `<button class="btn btn-small" onclick="loadToEditor(${item.address})">Edit</button>` : ''}
+                                ${item.value !== null ? `<button class="btn btn-small" onclick="loadToEditor(${item.address})">Bearbeiten</button>` : ''}
                             </td>
                         `;
                         tbody.appendChild(tr);
                     });
 
                     document.getElementById('scan-results').classList.remove('hidden');
-                    showStatus(`Scan complete: ${result.results.length} registers`, 'success');
+                    showStatus(`Scan abgeschlossen: ${result.results.length} Register`, 'success');
                 } else {
                     showStatus(result.error, 'error');
                 }
             } catch (error) {
-                showStatus(`Connection error: ${error.message}`, 'error');
+                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
             }
         });
 
-        // Load address to single register editor
+        // Adresse in den Editor laden
         function loadToEditor(address) {
             document.getElementById('address').value = address;
             document.getElementById('register_type').value = document.getElementById('scan-register-type').value;
@@ -361,7 +361,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Register type change handler - update data type options
+        // Register-Typ Änderung - Datentyp-Optionen aktualisieren
         document.getElementById('register_type').addEventListener('change', (e) => {
             const dataTypeSelect = document.getElementById('data_type');
             if (e.target.value === 'coil' || e.target.value === 'discrete') {
