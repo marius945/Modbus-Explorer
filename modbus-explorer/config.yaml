@@ -1,6 +1,6 @@
 name: "Modbus Explorer"
 description: "Read and write Modbus registers with a flexible web interface"
-version: "1.1.0"
+version: "1.1.1"
 slug: "modbus_explorer"
 init: false
 arch:
@@ -10,6 +10,7 @@ arch:
   - armhf
   - i386
 homeassistant_api: false
+host_network: true
 ingress: true
 ingress_port: 5000
 panel_icon: "mdi:chip"
