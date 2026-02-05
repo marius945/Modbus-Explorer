@@ -504,8 +504,6 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        const API_BASE = '';
-
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -536,7 +534,7 @@
             showToast('Lese...', 'info');
 
             try {
-                const res = await fetch(`${API_BASE}/api/read`, {
+                const res = await fetch(`api/read`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -581,7 +579,7 @@
             showToast('Teste...', 'info');
 
             try {
-                const res = await fetch(`${API_BASE}/api/test_write`, {
+                const res = await fetch(`api/test_write`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -619,7 +617,7 @@
             showToast('Schreibe...', 'info');
 
             try {
-                const res = await fetch(`${API_BASE}/api/write`, {
+                const res = await fetch(`api/write`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -653,7 +651,7 @@
             showToast('Scanne...', 'info');
 
             try {
-                const res = await fetch(`${API_BASE}/api/scan`, {
+                const res = await fetch(`api/scan`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
