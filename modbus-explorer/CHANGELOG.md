@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2024
+
+### Geändert
+- Neues Design mit Sidebar-Layout
+- CSS direkt eingebettet (behebt Lade-Probleme)
+- Verbesserte Benutzeroberfläche im Home Assistant Stil
+- Toast-Benachrichtigungen
+
+---
+
 ## [1.0.0] - 2024
 
 ### Hinzugefügt
