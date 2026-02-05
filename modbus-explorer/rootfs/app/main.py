@@ -10,6 +10,9 @@ from pymodbus.exceptions import ModbusException
 
 app = Flask(__name__)
 
+# Get ingress path from environment
+INGRESS_PATH = os.environ.get("INGRESS_PATH", "")
+
 # Load options from Home Assistant
 OPTIONS_PATH = "/data/options.json"
 if os.path.exists(OPTIONS_PATH):
@@ -44,12 +47,10 @@ def decode_registers(registers, data_type):
     if len(registers) < config["size"]:
         return None, f"Not enough registers for {data_type}"
 
-    # Convert registers to bytes (big-endian)
     byte_data = b""
     for reg in registers[:config["size"]]:
         byte_data += struct.pack(">H", reg)
 
-    # Unpack to the target type
     try:
         value = struct.unpack(config["pack"], byte_data)[0]
         return value, None
@@ -65,16 +66,13 @@ def encode_value(value, data_type):
     config = DATA_TYPES[data_type]
 
     try:
-        # Convert string value to appropriate type
         if "float" in data_type:
             value = float(value)
         else:
             value = int(value)
 
-        # Pack value to bytes
         byte_data = struct.pack(config["pack"], value)
 
-        # Convert bytes to registers
         registers = []
         for i in range(0, len(byte_data), 2):
             reg = struct.unpack(">H", byte_data[i:i+2])[0]
@@ -92,7 +90,8 @@ def index():
         "index.html",
         default_port=OPTIONS["default_port"],
         default_slave_id=OPTIONS["default_slave_id"],
-        data_types=list(DATA_TYPES.keys())
+        data_types=list(DATA_TYPES.keys()),
+        ingress_path=INGRESS_PATH
     )
 
 
@@ -109,17 +108,16 @@ def read_register():
     register_type = data.get("register_type", "holding")
 
     if not ip:
-        return jsonify({"success": False, "error": "IP address is required"})
+        return jsonify({"success": False, "error": "IP-Adresse erforderlich"})
 
     client = ModbusTcpClient(ip, port=port, timeout=OPTIONS["timeout"])
 
     try:
         if not client.connect():
-            return jsonify({"success": False, "error": f"Could not connect to {ip}:{port}"})
+            return jsonify({"success": False, "error": f"Verbindung zu {ip}:{port} fehlgeschlagen"})
 
         count = DATA_TYPES.get(data_type, {}).get("size", 1)
 
-        # Read registers based on type
         if register_type == "holding":
             result = client.read_holding_registers(address, count=count, slave=slave_id)
         elif register_type == "input":
@@ -140,10 +138,10 @@ def read_register():
                     "success": True,
                     "value": 1 if result.bits[0] else 0,
                     "raw": [1 if result.bits[0] else 0],
-                    "writable": False  # Discrete inputs are read-only
+                    "writable": False
                 })
         else:
-            return jsonify({"success": False, "error": f"Unknown register type: {register_type}"})
+            return jsonify({"success": False, "error": f"Unbekannter Register-Typ: {register_type}"})
 
         if result.isError():
             return jsonify({"success": False, "error": str(result)})
@@ -152,7 +150,6 @@ def read_register():
         if error:
             return jsonify({"success": False, "error": error})
 
-        # Determine if writable (holding registers and coils are writable)
         writable = register_type in ["holding", "coil"]
 
         return jsonify({
@@ -163,9 +160,9 @@ def read_register():
         })
 
     except ModbusException as e:
-        return jsonify({"success": False, "error": f"Modbus error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Modbus-Fehler: {str(e)}"})
     except Exception as e:
-        return jsonify({"success": False, "error": f"Error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Fehler: {str(e)}"})
     finally:
         client.close()
 
@@ -184,32 +181,28 @@ def write_register():
     register_type = data.get("register_type", "holding")
 
     if not ip:
-        return jsonify({"success": False, "error": "IP address is required"})
+        return jsonify({"success": False, "error": "IP-Adresse erforderlich"})
 
     if value is None or value == "":
-        return jsonify({"success": False, "error": "Value is required"})
+        return jsonify({"success": False, "error": "Wert erforderlich"})
 
-    # Check if register type is writable
     if register_type not in ["holding", "coil"]:
-        return jsonify({"success": False, "error": f"Register type '{register_type}' is read-only"})
+        return jsonify({"success": False, "error": f"Register-Typ '{register_type}' ist schreibgeschützt"})
 
     client = ModbusTcpClient(ip, port=port, timeout=OPTIONS["timeout"])
 
     try:
         if not client.connect():
-            return jsonify({"success": False, "error": f"Could not connect to {ip}:{port}"})
+            return jsonify({"success": False, "error": f"Verbindung zu {ip}:{port} fehlgeschlagen"})
 
         if register_type == "coil":
-            # Write coil (boolean)
             coil_value = bool(int(value))
             result = client.write_coil(address, coil_value, slave=slave_id)
         else:
-            # Encode value to registers
             registers, error = encode_value(value, data_type)
             if error:
-                return jsonify({"success": False, "error": f"Encoding error: {error}"})
+                return jsonify({"success": False, "error": f"Kodierungsfehler: {error}"})
 
-            # Write registers
             if len(registers) == 1:
                 result = client.write_register(address, registers[0], slave=slave_id)
             else:
@@ -218,15 +211,15 @@ def write_register():
         if result.isError():
             return jsonify({
                 "success": False,
-                "error": f"Write failed: {str(result)} - Register may be read-only"
+                "error": f"Schreiben fehlgeschlagen: {str(result)} - Register ist möglicherweise schreibgeschützt"
             })
 
-        return jsonify({"success": True, "message": "Value written successfully"})
+        return jsonify({"success": True, "message": "Wert erfolgreich geschrieben"})
 
     except ModbusException as e:
-        return jsonify({"success": False, "error": f"Modbus error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Modbus-Fehler: {str(e)}"})
     except Exception as e:
-        return jsonify({"success": False, "error": f"Error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Fehler: {str(e)}"})
     finally:
         client.close()
 
@@ -245,20 +238,20 @@ def scan_registers():
     register_type = data.get("register_type", "holding")
 
     if not ip:
-        return jsonify({"success": False, "error": "IP address is required"})
+        return jsonify({"success": False, "error": "IP-Adresse erforderlich"})
 
     if end_address < start_address:
-        return jsonify({"success": False, "error": "End address must be >= start address"})
+        return jsonify({"success": False, "error": "End-Adresse muss >= Start-Adresse sein"})
 
     if end_address - start_address > 100:
-        return jsonify({"success": False, "error": "Maximum scan range is 100 registers"})
+        return jsonify({"success": False, "error": "Maximaler Scan-Bereich: 100 Register"})
 
     client = ModbusTcpClient(ip, port=port, timeout=OPTIONS["timeout"])
     results = []
 
     try:
         if not client.connect():
-            return jsonify({"success": False, "error": f"Could not connect to {ip}:{port}"})
+            return jsonify({"success": False, "error": f"Verbindung zu {ip}:{port} fehlgeschlagen"})
 
         reg_size = DATA_TYPES.get(data_type, {}).get("size", 1)
 
@@ -329,16 +322,16 @@ def scan_registers():
         return jsonify({"success": True, "results": results})
 
     except ModbusException as e:
-        return jsonify({"success": False, "error": f"Modbus error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Modbus-Fehler: {str(e)}"})
     except Exception as e:
-        return jsonify({"success": False, "error": f"Error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Fehler: {str(e)}"})
     finally:
         client.close()
 
 
 @app.route("/api/test_write", methods=["POST"])
 def test_write():
-    """Test if a register is writable by attempting to write its current value."""
+    """Test if a register is writable."""
     data = request.json
 
     ip = data.get("ip", "").strip()
@@ -348,67 +341,57 @@ def test_write():
     register_type = data.get("register_type", "holding")
 
     if not ip:
-        return jsonify({"success": False, "error": "IP address is required"})
+        return jsonify({"success": False, "error": "IP-Adresse erforderlich"})
 
-    # Only holding registers and coils can be writable
     if register_type not in ["holding", "coil"]:
         return jsonify({
             "success": True,
             "writable": False,
-            "reason": f"Register type '{register_type}' is always read-only by Modbus specification"
+            "reason": f"Register-Typ '{register_type}' ist laut Modbus-Spezifikation immer schreibgeschützt"
         })
 
     client = ModbusTcpClient(ip, port=port, timeout=OPTIONS["timeout"])
 
     try:
         if not client.connect():
-            return jsonify({"success": False, "error": f"Could not connect to {ip}:{port}"})
+            return jsonify({"success": False, "error": f"Verbindung zu {ip}:{port} fehlgeschlagen"})
 
         if register_type == "coil":
-            # Read current value
             read_result = client.read_coils(address, count=1, slave=slave_id)
             if read_result.isError():
-                return jsonify({"success": False, "error": f"Could not read coil: {str(read_result)}"})
+                return jsonify({"success": False, "error": f"Coil konnte nicht gelesen werden: {str(read_result)}"})
 
             current_value = read_result.bits[0]
-
-            # Try to write the same value back
             write_result = client.write_coil(address, current_value, slave=slave_id)
 
-        else:  # holding register
-            # Read current value
+        else:
             read_result = client.read_holding_registers(address, count=1, slave=slave_id)
             if read_result.isError():
-                return jsonify({"success": False, "error": f"Could not read register: {str(read_result)}"})
+                return jsonify({"success": False, "error": f"Register konnte nicht gelesen werden: {str(read_result)}"})
 
             current_value = read_result.registers[0]
-
-            # Try to write the same value back
             write_result = client.write_register(address, current_value, slave=slave_id)
 
         if write_result.isError():
             return jsonify({
                 "success": True,
                 "writable": False,
-                "reason": f"Write test failed: {str(write_result)}"
+                "reason": f"Schreibtest fehlgeschlagen: {str(write_result)}"
             })
 
         return jsonify({
             "success": True,
             "writable": True,
-            "reason": "Register accepted write operation"
+            "reason": "Register akzeptiert Schreiboperationen"
         })
 
     except ModbusException as e:
-        return jsonify({"success": False, "error": f"Modbus error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Modbus-Fehler: {str(e)}"})
     except Exception as e:
-        return jsonify({"success": False, "error": f"Error: {str(e)}"})
+        return jsonify({"success": False, "error": f"Fehler: {str(e)}"})
     finally:
         client.close()
 
 
 if __name__ == "__main__":
-    # Get ingress path from environment
-    ingress_path = os.environ.get("INGRESS_PATH", "")
-
     app.run(host="0.0.0.0", port=5000, debug=False)

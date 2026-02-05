@@ -4,53 +4,403 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modbus Explorer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        :root {
+            --ha-primary: #03a9f4;
+            --ha-primary-dark: #0288d1;
+            --ha-accent: #ff9800;
+            --ha-success: #4caf50;
+            --ha-error: #f44336;
+            --ha-bg: #111111;
+            --ha-card: #1c1c1c;
+            --ha-card-border: #333;
+            --ha-text: #e1e1e1;
+            --ha-text-secondary: #9e9e9e;
+            --ha-input-bg: #2a2a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Roboto, 'Segoe UI', sans-serif;
+            background: var(--ha-bg);
+            color: var(--ha-text);
+            min-height: 100vh;
+        }
+
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--ha-card);
+            border-right: 1px solid var(--ha-card-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--ha-card-border);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--ha-primary), var(--ha-primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .logo-text {
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            color: var(--ha-text-secondary);
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.85em;
+            color: var(--ha-text-secondary);
+        }
+
+        input, select {
+            background: var(--ha-input-bg);
+            border: 1px solid var(--ha-card-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--ha-text);
+            font-size: 0.95em;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--ha-primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            margin-left: 280px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--ha-card);
+            border-radius: 12px;
+            border: 1px solid var(--ha-card-border);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--ha-card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h2 {
+            font-size: 1em;
+            font-weight: 500;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--ha-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--ha-primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--ha-input-bg);
+            color: var(--ha-text);
+            border: 1px solid var(--ha-card-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--ha-card-border);
+        }
+
+        .btn-warning {
+            background: var(--ha-accent);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Result Display */
+        .result-box {
+            background: var(--ha-input-bg);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .result-item .label {
+            font-size: 0.75em;
+            color: var(--ha-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .result-item .value {
+            font-size: 1.5em;
+            font-weight: 500;
+            color: var(--ha-primary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--ha-success);
+        }
+
+        .badge-warning {
+            background: rgba(255, 152, 0, 0.2);
+            color: var(--ha-accent);
+        }
+
+        /* Write Section */
+        .write-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--ha-card-border);
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .write-section .form-group {
+            flex: 1;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--ha-card-border);
+        }
+
+        th {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            color: var(--ha-text-secondary);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-ok {
+            color: var(--ha-success);
+        }
+
+        .status-error {
+            color: var(--ha-error);
+            font-size: 0.85em;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9em;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.info { background: var(--ha-primary); }
+        .toast.success { background: var(--ha-success); }
+        .toast.error { background: var(--ha-error); }
+        .toast.warning { background: var(--ha-accent); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--ha-card-border);
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .app {
+                flex-direction: column;
+            }
+        }
+
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Modbus Explorer</h1>
-            <p class="subtitle">Modbus-Register lesen und schreiben</p>
-        </header>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17,17H7V7H17M21,11V9H19V7C19,5.89 18.1,5 17,5H15V3H13V5H11V3H9V5H7C5.89,5 5,5.89 5,7V9H3V11H5V13H3V15H5V17A2,2 0 0,0 7,19H9V21H11V19H13V21H15V19H17A2,2 0 0,0 19,17V15H21V13H19V11M13,13H11V11H13M15,9H9V15H15V9Z"/></svg>
+                </div>
+                <span class="logo-text">Modbus Explorer</span>
+            </div>
 
-        <!-- Verbindungseinstellungen -->
-        <section class="card">
-            <h2>Verbindungseinstellungen</h2>
-            <div class="form-grid">
+            <div class="sidebar-section">
+                <h3>Verbindung</h3>
                 <div class="form-group">
-                    <label for="ip">IP-Adresse</label>
-                    <input type="text" id="ip" placeholder="192.168.1.100" required>
+                    <label>IP-Adresse</label>
+                    <input type="text" id="ip" placeholder="192.168.1.100">
                 </div>
-                <div class="form-group">
-                    <label for="port">Port</label>
-                    <input type="number" id="port" value="{{ default_port }}" min="1" max="65535">
-                </div>
-                <div class="form-group">
-                    <label for="slave_id">Slave-ID</label>
-                    <input type="number" id="slave_id" value="{{ default_slave_id }}" min="0" max="255">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Port</label>
+                        <input type="number" id="port" value="{{ default_port }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Slave-ID</label>
+                        <input type="number" id="slave_id" value="{{ default_slave_id }}">
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Einzelnes Register -->
-        <section class="card">
-            <h2>Einzelnes Register</h2>
-            <div class="form-grid">
+            <div class="sidebar-section">
+                <h3>Register</h3>
                 <div class="form-group">
-                    <label for="address">Register-Adresse</label>
+                    <label>Adresse</label>
                     <input type="number" id="address" value="0" min="0">
                 </div>
                 <div class="form-group">
-                    <label for="register_type">Register-Typ</label>
+                    <label>Register-Typ</label>
                     <select id="register_type">
-                        <option value="holding">Holding Register (Lesen/Schreiben)</option>
-                        <option value="input">Input Register (Nur Lesen)</option>
-                        <option value="coil">Coil (Lesen/Schreiben)</option>
-                        <option value="discrete">Discrete Input (Nur Lesen)</option>
+                        <option value="holding">Holding (R/W)</option>
+                        <option value="input">Input (R)</option>
+                        <option value="coil">Coil (R/W)</option>
+                        <option value="discrete">Discrete (R)</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="data_type">Datentyp</label>
+                    <label>Datentyp</label>
                     <select id="data_type">
                         {% for dt in data_types %}
                         <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
@@ -59,105 +409,111 @@
                 </div>
             </div>
 
-            <div class="button-group">
-                <button id="btn-read" class="btn btn-primary">Wert lesen</button>
-                <button id="btn-test-write" class="btn btn-secondary">Schreibbar testen</button>
+            <div class="btn-group" style="margin-top: auto;">
+                <button id="btn-read" class="btn btn-primary" style="flex:1;">Lesen</button>
+                <button id="btn-test-write" class="btn btn-secondary">Test</button>
             </div>
+        </aside>
 
-            <!-- Ergebnis-Anzeige -->
-            <div id="result-container" class="result-container hidden">
-                <div class="result-header">
-                    <h3>Ergebnis</h3>
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Single Register Result -->
+            <div class="card" id="result-card">
+                <div class="card-header">
+                    <h2>Ergebnis</h2>
                     <span id="writable-badge" class="badge hidden"></span>
                 </div>
-                <div class="result-grid">
-                    <div class="result-item">
-                        <label>Aktueller Wert</label>
-                        <span id="current-value">-</span>
+                <div class="card-content">
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <span class="label">Wert</span>
+                            <span class="value" id="current-value">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">Roh-Register</span>
+                            <span class="value" id="raw-value" style="font-size:1em;">-</span>
+                        </div>
                     </div>
-                    <div class="result-item">
-                        <label>Roh-Register</label>
-                        <span id="raw-value">-</span>
-                    </div>
-                </div>
 
-                <!-- Schreiben-Bereich -->
-                <div id="write-section" class="write-section hidden">
-                    <h4>Neuen Wert schreiben</h4>
-                    <div class="write-form">
-                        <input type="text" id="new-value" placeholder="Neuen Wert eingeben">
+                    <div id="write-section" class="write-section hidden">
+                        <div class="form-group">
+                            <label>Neuer Wert</label>
+                            <input type="text" id="new-value" placeholder="Wert eingeben">
+                        </div>
                         <button id="btn-write" class="btn btn-warning">Schreiben</button>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Scan-Bereich -->
-        <section class="card">
-            <h2>Bereich scannen</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="scan-start">Start-Adresse</label>
-                    <input type="number" id="scan-start" value="0" min="0">
+            <!-- Scan Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Bereich scannen</h2>
                 </div>
-                <div class="form-group">
-                    <label for="scan-end">End-Adresse</label>
-                    <input type="number" id="scan-end" value="10" min="0">
-                </div>
-                <div class="form-group">
-                    <label for="scan-register-type">Register-Typ</label>
-                    <select id="scan-register-type">
-                        <option value="holding">Holding Register</option>
-                        <option value="input">Input Register</option>
-                        <option value="coil">Coil</option>
-                        <option value="discrete">Discrete Input</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="scan-data-type">Datentyp</label>
-                    <select id="scan-data-type">
-                        {% for dt in data_types %}
-                        <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="card-content">
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                        <div class="form-group">
+                            <label>Start</label>
+                            <input type="number" id="scan-start" value="0" style="width:80px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Ende</label>
+                            <input type="number" id="scan-end" value="10" style="width:80px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Typ</label>
+                            <select id="scan-register-type" style="width:120px;">
+                                <option value="holding">Holding</option>
+                                <option value="input">Input</option>
+                                <option value="coil">Coil</option>
+                                <option value="discrete">Discrete</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Datentyp</label>
+                            <select id="scan-data-type" style="width:100px;">
+                                {% for dt in data_types %}
+                                <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button id="btn-scan" class="btn btn-primary">Scannen</button>
+                    </div>
+
+                    <div id="scan-results" class="hidden" style="margin-top:20px;">
+                        <div class="table-container">
+                            <table id="scan-table">
+                                <thead>
+                                    <tr>
+                                        <th>Adresse</th>
+                                        <th>Wert</th>
+                                        <th>Roh</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button id="btn-scan" class="btn btn-primary">Register scannen</button>
-
-            <!-- Scan-Ergebnisse -->
-            <div id="scan-results" class="scan-results hidden">
-                <h3>Scan-Ergebnisse</h3>
-                <table id="scan-table">
-                    <thead>
-                        <tr>
-                            <th>Adresse</th>
-                            <th>Wert</th>
-                            <th>Roh</th>
-                            <th>Status</th>
-                            <th>Aktion</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Status-Meldungen -->
-        <div id="status" class="status hidden"></div>
+        </main>
     </div>
 
+    <div id="toast" class="toast"></div>
+
     <script>
-        // Hilfsfunktion für Status-Meldungen
-        function showStatus(message, type = 'info') {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-            status.classList.remove('hidden');
-            setTimeout(() => status.classList.add('hidden'), 5000);
+        const API_BASE = '{{ ingress_path }}';
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
-        // Hilfsfunktion für Verbindungseinstellungen
-        function getConnectionSettings() {
+        function getSettings() {
             return {
                 ip: document.getElementById('ip').value,
                 port: parseInt(document.getElementById('port').value),
@@ -165,13 +521,10 @@
             };
         }
 
-        // Einzelnes Register lesen
+        // Read
         document.getElementById('btn-read').addEventListener('click', async () => {
-            const settings = getConnectionSettings();
-            if (!settings.ip) {
-                showStatus('Bitte IP-Adresse eingeben', 'error');
-                return;
-            }
+            const settings = getSettings();
+            if (!settings.ip) return showToast('IP-Adresse eingeben', 'error');
 
             const data = {
                 ...settings,
@@ -180,19 +533,17 @@
                 register_type: document.getElementById('register_type').value
             };
 
-            showStatus('Lese Register...', 'info');
+            showToast('Lese...', 'info');
 
             try {
-                const response = await fetch('/api/read', {
+                const res = await fetch(`${API_BASE}/api/read`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
-                const result = await response.json();
+                const result = await res.json();
 
                 if (result.success) {
-                    document.getElementById('result-container').classList.remove('hidden');
                     document.getElementById('current-value').textContent = result.value;
                     document.getElementById('raw-value').textContent = JSON.stringify(result.raw);
 
@@ -207,23 +558,19 @@
                         badge.className = 'badge badge-warning';
                         document.getElementById('write-section').classList.add('hidden');
                     }
-
-                    showStatus('Erfolgreich gelesen', 'success');
+                    showToast('Erfolgreich gelesen', 'success');
                 } else {
-                    showStatus(result.error, 'error');
+                    showToast(result.error, 'error');
                 }
-            } catch (error) {
-                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
+            } catch (e) {
+                showToast('Verbindungsfehler', 'error');
             }
         });
 
-        // Testen ob schreibbar
+        // Test Write
         document.getElementById('btn-test-write').addEventListener('click', async () => {
-            const settings = getConnectionSettings();
-            if (!settings.ip) {
-                showStatus('Bitte IP-Adresse eingeben', 'error');
-                return;
-            }
+            const settings = getSettings();
+            if (!settings.ip) return showToast('IP-Adresse eingeben', 'error');
 
             const data = {
                 ...settings,
@@ -231,40 +578,35 @@
                 register_type: document.getElementById('register_type').value
             };
 
-            showStatus('Teste ob Register schreibbar ist...', 'info');
+            showToast('Teste...', 'info');
 
             try {
-                const response = await fetch('/api/test_write', {
+                const res = await fetch(`${API_BASE}/api/test_write`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
-                const result = await response.json();
+                const result = await res.json();
 
                 if (result.success) {
                     if (result.writable) {
-                        showStatus(`Register ist SCHREIBBAR: ${result.reason}`, 'success');
+                        showToast('Register ist SCHREIBBAR', 'success');
                     } else {
-                        showStatus(`Register ist NUR LESBAR: ${result.reason}`, 'warning');
+                        showToast('Register ist NUR LESBAR', 'warning');
                     }
                 } else {
-                    showStatus(result.error, 'error');
+                    showToast(result.error, 'error');
                 }
-            } catch (error) {
-                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
+            } catch (e) {
+                showToast('Verbindungsfehler', 'error');
             }
         });
 
-        // Wert schreiben
+        // Write
         document.getElementById('btn-write').addEventListener('click', async () => {
-            const settings = getConnectionSettings();
+            const settings = getSettings();
             const newValue = document.getElementById('new-value').value;
-
-            if (!newValue) {
-                showStatus('Bitte einen Wert zum Schreiben eingeben', 'error');
-                return;
-            }
+            if (!newValue) return showToast('Wert eingeben', 'error');
 
             const data = {
                 ...settings,
@@ -274,36 +616,31 @@
                 value: newValue
             };
 
-            showStatus('Schreibe Wert...', 'info');
+            showToast('Schreibe...', 'info');
 
             try {
-                const response = await fetch('/api/write', {
+                const res = await fetch(`${API_BASE}/api/write`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
-                const result = await response.json();
+                const result = await res.json();
 
                 if (result.success) {
-                    showStatus('Wert erfolgreich geschrieben!', 'success');
-                    // Erneut lesen zur Bestätigung
+                    showToast('Erfolgreich geschrieben!', 'success');
                     document.getElementById('btn-read').click();
                 } else {
-                    showStatus(result.error, 'error');
+                    showToast(result.error, 'error');
                 }
-            } catch (error) {
-                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
+            } catch (e) {
+                showToast('Verbindungsfehler', 'error');
             }
         });
 
-        // Register scannen
+        // Scan
         document.getElementById('btn-scan').addEventListener('click', async () => {
-            const settings = getConnectionSettings();
-            if (!settings.ip) {
-                showStatus('Bitte IP-Adresse eingeben', 'error');
-                return;
-            }
+            const settings = getSettings();
+            if (!settings.ip) return showToast('IP-Adresse eingeben', 'error');
 
             const data = {
                 ...settings,
@@ -313,16 +650,15 @@
                 register_type: document.getElementById('scan-register-type').value
             };
 
-            showStatus('Scanne Register...', 'info');
+            showToast('Scanne...', 'info');
 
             try {
-                const response = await fetch('/api/scan', {
+                const res = await fetch(`${API_BASE}/api/scan`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
-                const result = await response.json();
+                const result = await res.json();
 
                 if (result.success) {
                     const tbody = document.querySelector('#scan-table tbody');
@@ -332,27 +668,24 @@
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>${item.address}</td>
-                            <td>${item.value !== null ? item.value : '-'}</td>
-                            <td>${item.raw ? JSON.stringify(item.raw) : '-'}</td>
-                            <td>${item.error ? `<span class="error-text">${item.error}</span>` : '<span class="success-text">OK</span>'}</td>
-                            <td>
-                                ${item.value !== null ? `<button class="btn btn-small" onclick="loadToEditor(${item.address})">Bearbeiten</button>` : ''}
-                            </td>
+                            <td><strong>${item.value !== null ? item.value : '-'}</strong></td>
+                            <td style="color:var(--ha-text-secondary)">${item.raw ? JSON.stringify(item.raw) : '-'}</td>
+                            <td>${item.error ? `<span class="status-error">${item.error}</span>` : '<span class="status-ok">OK</span>'}</td>
+                            <td>${item.value !== null ? `<button class="btn btn-small btn-secondary" onclick="loadToEditor(${item.address})">Laden</button>` : ''}</td>
                         `;
                         tbody.appendChild(tr);
                     });
 
                     document.getElementById('scan-results').classList.remove('hidden');
-                    showStatus(`Scan abgeschlossen: ${result.results.length} Register`, 'success');
+                    showToast(`${result.results.length} Register gescannt`, 'success');
                 } else {
-                    showStatus(result.error, 'error');
+                    showToast(result.error, 'error');
                 }
-            } catch (error) {
-                showStatus(`Verbindungsfehler: ${error.message}`, 'error');
+            } catch (e) {
+                showToast('Verbindungsfehler', 'error');
             }
         });
 
-        // Adresse in den Editor laden
         function loadToEditor(address) {
             document.getElementById('address').value = address;
             document.getElementById('register_type').value = document.getElementById('scan-register-type').value;
@@ -361,19 +694,15 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Register-Typ Änderung - Datentyp-Optionen aktualisieren
+        // Register type change
         document.getElementById('register_type').addEventListener('change', (e) => {
-            const dataTypeSelect = document.getElementById('data_type');
+            const dt = document.getElementById('data_type');
             if (e.target.value === 'coil' || e.target.value === 'discrete') {
-                dataTypeSelect.innerHTML = '<option value="uint16">Boolean (0/1)</option>';
-                dataTypeSelect.disabled = true;
+                dt.innerHTML = '<option value="uint16">Boolean (0/1)</option>';
+                dt.disabled = true;
             } else {
-                dataTypeSelect.disabled = false;
-                dataTypeSelect.innerHTML = `
-                    {% for dt in data_types %}
-                    <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
-                    {% endfor %}
-                `;
+                dt.disabled = false;
+                dt.innerHTML = `{% for dt in data_types %}<option value="{{ dt }}">{{ dt }}</option>{% endfor %}`;
             }
         });
     </script>
