@@ -1,0 +1,28 @@
+name: "Modbus Explorer"
+description: "Read and write Modbus registers with a flexible web interface"
+version: "1.0.0"
+slug: "modbus_explorer"
+init: false
+arch:
+  - amd64
+  - aarch64
+  - armv7
+  - armhf
+  - i386
+homeassistant_api: false
+ingress: true
+ingress_port: 5000
+panel_icon: "mdi:chip"
+panel_title: "Modbus Explorer"
+ports:
+  5000/tcp: null
+ports_description:
+  5000/tcp: "Web interface (disabled when using Ingress)"
+options:
+  default_port: 502
+  default_slave_id: 1
+  timeout: 5
+schema:
+  default_port: int
+  default_slave_id: int
+  timeout: int

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modbus Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Modbus Explorer</h1>
+            <p class="subtitle">Read and write Modbus registers</p>
+        </header>
+
+        <!-- Connection Settings -->
+        <section class="card">
+            <h2>Connection Settings</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="ip">IP Address</label>
+                    <input type="text" id="ip" placeholder="192.168.1.100" required>
+                </div>
+                <div class="form-group">
+                    <label for="port">Port</label>
+                    <input type="number" id="port" value="{{ default_port }}" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="slave_id">Slave ID</label>
+                    <input type="number" id="slave_id" value="{{ default_slave_id }}" min="0" max="255">
+                </div>
+            </div>
+        </section>
+
+        <!-- Single Register Operations -->
+        <section class="card">
+            <h2>Single Register</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="address">Register Address</label>
+                    <input type="number" id="address" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="register_type">Register Type</label>
+                    <select id="register_type">
+                        <option value="holding">Holding Register (Read/Write)</option>
+                        <option value="input">Input Register (Read-Only)</option>
+                        <option value="coil">Coil (Read/Write)</option>
+                        <option value="discrete">Discrete Input (Read-Only)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="data_type">Data Type</label>
+                    <select id="data_type">
+                        {% for dt in data_types %}
+                        <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="btn-read" class="btn btn-primary">Read Value</button>
+                <button id="btn-test-write" class="btn btn-secondary">Test if Writable</button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-container" class="result-container hidden">
+                <div class="result-header">
+                    <h3>Result</h3>
+                    <span id="writable-badge" class="badge hidden"></span>
+                </div>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <label>Current Value</label>
+                        <span id="current-value">-</span>
+                    </div>
+                    <div class="result-item">
+                        <label>Raw Registers</label>
+                        <span id="raw-value">-</span>
+                    </div>
+                </div>
+
+                <!-- Write Section -->
+                <div id="write-section" class="write-section hidden">
+                    <h4>Write New Value</h4>
+                    <div class="write-form">
+                        <input type="text" id="new-value" placeholder="Enter new value">
+                        <button id="btn-write" class="btn btn-warning">Write</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scan Section -->
+        <section class="card">
+            <h2>Scan Range</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="scan-start">Start Address</label>
+                    <input type="number" id="scan-start" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="scan-end">End Address</label>
+                    <input type="number" id="scan-end" value="10" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="scan-register-type">Register Type</label>
+                    <select id="scan-register-type">
+                        <option value="holding">Holding Register</option>
+                        <option value="input">Input Register</option>
+                        <option value="coil">Coil</option>
+                        <option value="discrete">Discrete Input</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="scan-data-type">Data Type</label>
+                    <select id="scan-data-type">
+                        {% for dt in data_types %}
+                        <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button id="btn-scan" class="btn btn-primary">Scan Registers</button>
+
+            <!-- Scan Results -->
+            <div id="scan-results" class="scan-results hidden">
+                <h3>Scan Results</h3>
+                <table id="scan-table">
+                    <thead>
+                        <tr>
+                            <th>Address</th>
+                            <th>Value</th>
+                            <th>Raw</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Status Messages -->
+        <div id="status" class="status hidden"></div>
+    </div>
+
+    <script>
+        // Helper function to show status messages
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.remove('hidden');
+            setTimeout(() => status.classList.add('hidden'), 5000);
+        }
+
+        // Helper function to get connection settings
+        function getConnectionSettings() {
+            return {
+                ip: document.getElementById('ip').value,
+                port: parseInt(document.getElementById('port').value),
+                slave_id: parseInt(document.getElementById('slave_id').value)
+            };
+        }
+
+        // Read single register
+        document.getElementById('btn-read').addEventListener('click', async () => {
+            const settings = getConnectionSettings();
+            if (!settings.ip) {
+                showStatus('Please enter an IP address', 'error');
+                return;
+            }
+
+            const data = {
+                ...settings,
+                address: parseInt(document.getElementById('address').value),
+                data_type: document.getElementById('data_type').value,
+                register_type: document.getElementById('register_type').value
+            };
+
+            showStatus('Reading register...', 'info');
+
+            try {
+                const response = await fetch('/api/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('result-container').classList.remove('hidden');
+                    document.getElementById('current-value').textContent = result.value;
+                    document.getElementById('raw-value').textContent = JSON.stringify(result.raw);
+
+                    const badge = document.getElementById('writable-badge');
+                    badge.classList.remove('hidden');
+                    if (result.writable) {
+                        badge.textContent = 'Writable';
+                        badge.className = 'badge badge-success';
+                        document.getElementById('write-section').classList.remove('hidden');
+                    } else {
+                        badge.textContent = 'Read-Only';
+                        badge.className = 'badge badge-warning';
+                        document.getElementById('write-section').classList.add('hidden');
+                    }
+
+                    showStatus('Read successful', 'success');
+                } else {
+                    showStatus(result.error, 'error');
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, 'error');
+            }
+        });
+
+        // Test if writable
+        document.getElementById('btn-test-write').addEventListener('click', async () => {
+            const settings = getConnectionSettings();
+            if (!settings.ip) {
+                showStatus('Please enter an IP address', 'error');
+                return;
+            }
+
+            const data = {
+                ...settings,
+                address: parseInt(document.getElementById('address').value),
+                register_type: document.getElementById('register_type').value
+            };
+
+            showStatus('Testing if register is writable...', 'info');
+
+            try {
+                const response = await fetch('/api/test_write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.writable) {
+                        showStatus(`Register is WRITABLE: ${result.reason}`, 'success');
+                    } else {
+                        showStatus(`Register is READ-ONLY: ${result.reason}`, 'warning');
+                    }
+                } else {
+                    showStatus(result.error, 'error');
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, 'error');
+            }
+        });
+
+        // Write value
+        document.getElementById('btn-write').addEventListener('click', async () => {
+            const settings = getConnectionSettings();
+            const newValue = document.getElementById('new-value').value;
+
+            if (!newValue) {
+                showStatus('Please enter a value to write', 'error');
+                return;
+            }
+
+            const data = {
+                ...settings,
+                address: parseInt(document.getElementById('address').value),
+                data_type: document.getElementById('data_type').value,
+                register_type: document.getElementById('register_type').value,
+                value: newValue
+            };
+
+            showStatus('Writing value...', 'info');
+
+            try {
+                const response = await fetch('/api/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus('Value written successfully!', 'success');
+                    // Re-read to verify
+                    document.getElementById('btn-read').click();
+                } else {
+                    showStatus(result.error, 'error');
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, 'error');
+            }
+        });
+
+        // Scan registers
+        document.getElementById('btn-scan').addEventListener('click', async () => {
+            const settings = getConnectionSettings();
+            if (!settings.ip) {
+                showStatus('Please enter an IP address', 'error');
+                return;
+            }
+
+            const data = {
+                ...settings,
+                start_address: parseInt(document.getElementById('scan-start').value),
+                end_address: parseInt(document.getElementById('scan-end').value),
+                data_type: document.getElementById('scan-data-type').value,
+                register_type: document.getElementById('scan-register-type').value
+            };
+
+            showStatus('Scanning registers...', 'info');
+
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const tbody = document.querySelector('#scan-table tbody');
+                    tbody.innerHTML = '';
+
+                    result.results.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${item.address}</td>
+                            <td>${item.value !== null ? item.value : '-'}</td>
+                            <td>${item.raw ? JSON.stringify(item.raw) : '-'}</td>
+                            <td>${item.error ? `<span class="error-text">${item.error}</span>` : '<span class="success-text">OK</span>'}</td>
+                            <td>
+                                ${item.value !== null ? `<button class="btn btn-small" onclick="loadToEditor(${item.address})">Edit</button>` : ''}
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('scan-results').classList.remove('hidden');
+                    showStatus(`Scan complete: ${result.results.length} registers`, 'success');
+                } else {
+                    showStatus(result.error, 'error');
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, 'error');
+            }
+        });
+
+        // Load address to single register editor
+        function loadToEditor(address) {
+            document.getElementById('address').value = address;
+            document.getElementById('register_type').value = document.getElementById('scan-register-type').value;
+            document.getElementById('data_type').value = document.getElementById('scan-data-type').value;
+            document.getElementById('btn-read').click();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Register type change handler - update data type options
+        document.getElementById('register_type').addEventListener('change', (e) => {
+            const dataTypeSelect = document.getElementById('data_type');
+            if (e.target.value === 'coil' || e.target.value === 'discrete') {
+                dataTypeSelect.innerHTML = '<option value="uint16">Boolean (0/1)</option>';
+                dataTypeSelect.disabled = true;
+            } else {
+                dataTypeSelect.disabled = false;
+                dataTypeSelect.innerHTML = `
+                    {% for dt in data_types %}
+                    <option value="{{ dt }}" {% if dt == 'uint16' %}selected{% endif %}>{{ dt }}</option>
+                    {% endfor %}
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
