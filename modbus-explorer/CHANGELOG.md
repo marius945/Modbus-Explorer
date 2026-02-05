@@ -11,4 +11,3 @@
 - Testen ob Register schreibbar ist
 - Dark Theme passend zu Home Assistant
 - Ingress-Unterstützung für nahtlose HA-Integration
-- Deutsche Benutzeroberfläche
