@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4] - 2025
+
+### Hinzugefügt
+- Neue Datentypen: uint8 (0-255) und int8 (-128 bis 127)
+
+---
+
 ## [1.1.0] - 2024
 
 ### Geändert

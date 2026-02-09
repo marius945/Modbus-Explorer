@@ -27,6 +27,8 @@ else:
 
 # Data type configurations
 DATA_TYPES = {
+    "uint8": {"size": 1, "pack": ">xB", "min": 0, "max": 255},
+    "int8": {"size": 1, "pack": ">xb", "min": -128, "max": 127},
     "uint16": {"size": 1, "pack": ">H", "min": 0, "max": 65535},
     "int16": {"size": 1, "pack": ">h", "min": -32768, "max": 32767},
     "uint32": {"size": 2, "pack": ">I", "min": 0, "max": 4294967295},
